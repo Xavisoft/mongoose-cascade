@@ -1,150 +1,11 @@
 
-
 const mongoose = require('mongoose');
+const DeleteRestrictedError = require('./DeleteRestrictedError');
+const constants = require('./constants');
+const { buildReferenceMap } = require('./utils');
 
 
-const ON_DELETE = {
-   SET_NULL: 'set_null',
-   CASCADE: 'cascade',
-   RESTRICT: 'restrict',
-}
-
-
-class DeleteRestrictedError extends mongoose.MongooseError {
-   /**
-    * 
-    * @param {mongoose.Model} restrictedModel 
-    * @param {Array<mongoose.ObjectId>} restrictedIds 
-    * @param {mongoose.Model} restrictingModel 
-    */
-   constructor(restrictedModel, restrictedIds, restrictingModel) {
-      super();
-      this.restrictedModel = restrictedModel;
-      this.restrictedIds = restrictedIds;
-      this.restrictingModel = restrictingModel
-      this.message = `At least one of ${restrictedModel.modelName} { _ids: [ ${restrictedIds.join(', ') } ] }: is still referenced in ${restrictingModel.modelName} collection`
-   }
-}
-
-let _refLists;
-
-/**
- * 
- * @param {mongoose} mongoose
- * @returns {Object<string,Array<{
- *    model: mongoose.Model,
- *    attribute: string,
- *    onDelete: string,
- * }>}
- * }
- */
-function buildReferenceMap(mongoose) {
-
-   if (_refLists)
-      return _refLists;
-
-   const refLists = {};
-
-   mongoose.modelNames().forEach(modelName => {
-      const Model = mongoose.model(modelName);
-      const schema = Model.schema.obj;
-
-      Object.keys(schema).forEach(attribute => {
-
-         // check if this attribute is a reference
-         let obj = schema[attribute];
-
-         // TODO: this might now work everytime
-         if (Array.isArray(obj))
-            obj = obj[0];
-
-         if (typeof obj !== 'object') // can't have ref
-            return;
-         
-         const refModelName = obj.ref;
-         if (!refModelName)
-            return;
-
-         const { onDelete } = obj;
-         if (!onDelete)
-            return;
-
-         // record reference
-         let refList = refLists[refModelName];
-
-         if (!refList) {
-            refList = [];
-            refLists[refModelName] = refList;
-         }
-
-         refList.push({
-            model: Model,
-            attribute,
-            onDelete,
-         });
-
-
-      })
-   });
-
-   // check if any config is missed
-   let configuredCount = 0;
-
-   for (const key in refLists)
-      configuredCount += refLists[key].length;
-
-   const expectedCount = _countRefs(mongoose);
-
-   if (configuredCount < expectedCount) {
-      const message = 'This error is because the developer overlooked at least 1 way of defining a attributes in schema. Please try to be as verbose as possible to make this error go away';
-      throw new Error(message);
-   } else if (configuredCount > expectedCount) {
-      throw new Error('This should not happen. I messed up.');
-   }
-
-   _refLists = refLists;
-   return refLists;
-
-}
-
-/**
- * 
- * @param {mongoose} mongoose 
- */
-function _countRefs(mongoose) {
-
-   function countSchemaRefs(obj) {
-      let count = 0;
-
-      if (typeof obj === 'object') {
-         if (Array.isArray(obj)) {
-            obj.forEach(item => {
-               count += countSchemaRefs(item)
-            });
-         } else {
-            if (obj.ref && obj.onDelete) {
-               count +=1
-            } else {
-               for (const key in obj) {
-                  count += countSchemaRefs(obj[key]);
-               }
-            }
-         }
-      }
-
-      return count;
-   }
-
-   let count = 0;
-
-   mongoose.modelNames().forEach(name => {
-      const model = mongoose.models[name];
-      count += countSchemaRefs(model.schema.obj)
-   });
-
-   return count;
-
-}
+const { ON_DELETE } = constants;
 
 /**
  * 
@@ -163,7 +24,7 @@ async function cascade(Model, filter, opts={}) {
       session.startTransaction();
    }
 
-   const refLists = buildReferenceMap(mongoose);
+   const refLists = buildReferenceMap();
 
    try {
 
@@ -239,6 +100,7 @@ async function cascade(Model, filter, opts={}) {
    }
 }
 
-module.exports = cascade;
-
-cascade.ON_DELETE = ON_DELETE;
+module.exports = {
+   cascade,
+   constants,
+};
