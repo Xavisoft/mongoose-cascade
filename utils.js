@@ -80,7 +80,7 @@ function buildReferenceMap() {
 }
 
 
-function _countRefs(mongoose) {
+function _countRefs() {
 
    function countSchemaRefs(obj) {
       let count = 0;

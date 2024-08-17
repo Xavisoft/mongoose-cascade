@@ -4,7 +4,7 @@
   "description": "An npm package for implementing ON DELETE CASCADE, SET NULL, and RESTRICT behavior for Mongoose",
   "main": "index.js",
   "scripts": {
-    "test": "mocha"
+    "test": "mocha --ui tdd --exit --timeout 2000 --recursive"
   },
   "repository": {
     "type": "git",
@@ -20,15 +20,16 @@
     "url": "https://github.com/Xavisoft/mongoose-cascade/issues"
   },
   "homepage": "https://github.com/Xavisoft/mongoose-cascade#readme",
-  "dependencies": {
-    "mongoose": "^8.5.3"
+  "peerDependencies": {
+    "mongoose": "*"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
     "casual": "^1.6.2",
-    "chai": "^5.1.1",
+    "chai": "^4.2.0",
     "eslint": "^9.9.0",
     "globals": "^15.9.0",
-    "mocha": "^10.7.3"
+    "mocha": "^10.7.3",
+    "mongoose": "^8.5.3"
   }
 }
