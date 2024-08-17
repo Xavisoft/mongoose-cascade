@@ -62,23 +62,24 @@ async function cascade(Model, filter, opts={}) {
                   break;
 
                case ON_DELETE.SET_NULL:
-
-                  const update = { [attribute]: null }
-                  await model.updateMany(filter, update, { session });
-
-                  break;
-
-               case ON_DELETE.RESTRICT:
-
-                  const count = await model.countDocuments(filter, { session });
-
-                  if (count > 0) {
-                     const err = new DeleteRestrictedError(Model, deletedIds, model);
-                     err.code = ON_DELETE.RESTRICT;
-                     throw err;
+                  {
+                     const update = { [attribute]: null }
+                     await model.updateMany(filter, update, { session });
+                     break;
                   }
 
-                  break;
+               case ON_DELETE.RESTRICT:
+                  {
+                     const count = await model.countDocuments(filter, { session });
+
+                     if (count > 0) {
+                        const err = new DeleteRestrictedError(Model, deletedIds, model);
+                        err.code = ON_DELETE.RESTRICT;
+                        throw err;
+                     }
+
+                     break;
+                  }
             
                default:
                   break;

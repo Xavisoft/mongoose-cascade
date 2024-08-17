@@ -11,9 +11,9 @@ let _refLists;
  * }>}
  * }
  */
-function buildReferenceMap() {
+function buildReferenceMap(force=false) {
 
-   if (_refLists)
+   if (!force && _refLists)
       return _refLists;
 
    const refLists = {};

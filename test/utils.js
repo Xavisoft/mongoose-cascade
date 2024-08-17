@@ -29,11 +29,12 @@ async function emptyDB() {
       db = mongoose.connection.db;
    }
 
-   const promises = (await db.collections()).map(collection => {
-      return collection.drop()
-   });
+   const collections = await db.collections();
+   
+   for (const collection of collections) {
+      await collection.drop();
+   }
 
-   return await Promise.all(promises);
 }
 
 function delay(millis) {
