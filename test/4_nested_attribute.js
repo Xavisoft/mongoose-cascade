@@ -25,7 +25,7 @@ suite("Nested attribute", function() {
          createReferringSchemaObject({ onDelete, referredModelName }) {
             return {
                [attributeName]: {
-                  [attributeName]: {
+                  [childAttributeName]: {
                      type: mongoose.Schema.Types.ObjectId,
                      ref: referredModelName,
                      onDelete,
@@ -45,7 +45,7 @@ suite("Nested attribute", function() {
             return {
                [attributeName]: {
                   type: {
-                     [attributeName]: {
+                     [childAttributeName]: {
                         type: mongoose.Schema.Types.ObjectId,
                         ref: referredModelName,
                         onDelete,

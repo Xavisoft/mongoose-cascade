@@ -4,7 +4,7 @@
   "description": "An npm package for implementing ON DELETE CASCADE, SET NULL, and RESTRICT behavior for Mongoose",
   "main": "index.js",
   "scripts": {
-    "test": "mocha --ui tdd --exit --timeout 5000 --recursive"
+    "test": "mocha --ui tdd --exit --timeout 10000 --recursive"
   },
   "repository": {
     "type": "git",

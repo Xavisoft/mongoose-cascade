@@ -22,56 +22,7 @@ function buildReferenceMap(force=false) {
    mongoose.modelNames().forEach(modelName => {
       const Model = mongoose.model(modelName);
       const schema = Model.schema.obj;
-
-      Object.keys(schema).forEach(attribute => {
-
-         // check if this attribute is a reference
-         let obj = schema[attribute];
-
-         // TODO: this might now work everytime
-         let isArray = false;
-         if (Array.isArray(obj)) {
-            obj = obj[0];
-            isArray = true;
-         }
-
-         if (typeof obj !== 'object') // can't have ref
-            return;
-
-         if (Array.isArray(obj.type))
-            isArray = true;
-
-         let setNullOp;
-         if (isArray) {
-            setNullOp = {
-               [`${attribute}.$`]: null,
-            };
-         }
-         
-         const refModelName = obj.ref;
-         if (!refModelName)
-            return;
-
-         const { onDelete } = obj;
-         if (!onDelete)
-            return;
-
-         // record reference
-         let refList = refLists[refModelName];
-
-         if (!refList) {
-            refList = [];
-            refLists[refModelName] = refList;
-         }
-
-         refList.push({
-            model: Model,
-            attribute,
-            onDelete,
-            setNullOp
-         });
-
-      })
+      processSchemaForRefs(schema, refLists, Model);
    });
 
    // check if any config is missed
@@ -92,6 +43,65 @@ function buildReferenceMap(force=false) {
    _refLists = refLists;
    return refLists;
 
+}
+
+
+function processSchemaForRefs(schema, refLists, Model, path=[]) {
+   Object.keys(schema).forEach(attribute => {
+
+      // check if this attribute is a reference
+      let obj = schema[attribute];
+
+      // TODO: this might now work everytime
+      let isArray = false;
+      if (Array.isArray(obj)) {
+         obj = obj[0];
+         isArray = true;
+      }
+
+      if (typeof obj !== 'object') // can't have ref
+         return;
+
+      if (Array.isArray(obj.type))
+         isArray = true;
+
+      path.push(attribute);
+      const strPath = path.join('.');
+
+      let setNullOp;
+      if (isArray) {
+         setNullOp = {
+            [`${strPath}.$`]: null,
+         };
+      }
+      
+      const refModelName = obj.ref;
+      if (!refModelName) {
+         const schema = obj.type || obj;
+         processSchemaForRefs(schema, refLists, Model, path);
+         return;
+      }
+
+      const { onDelete } = obj;
+      if (!onDelete)
+         return;
+
+      // record reference
+      let refList = refLists[refModelName];
+
+      if (!refList) {
+         refList = [];
+         refLists[refModelName] = refList;
+      }
+
+      refList.push({
+         model: Model,
+         attribute: strPath,
+         onDelete,
+         setNullOp
+      });
+
+   })
 }
 
 
