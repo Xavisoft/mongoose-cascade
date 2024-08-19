@@ -108,6 +108,8 @@ async function cascade(Model, filter, opts={}) {
 // TODO: Deal with typos in on refs
 // TODO: Deal with multiple elements matching on PULL or SET_NULL
 // TODO: ADD github actions for publishing to NPM
+// TODO: Finalize interface
+// TODO: Documentation
 
 
 module.exports = {
