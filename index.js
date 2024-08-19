@@ -81,6 +81,8 @@ async function cascade(Model, filter, opts={}) {
 
                      break;
                   }
+
+               // TODO: Add PULL case
             
                default:
                   break;
@@ -101,6 +103,12 @@ async function cascade(Model, filter, opts={}) {
          await session.endSession();
    }
 }
+
+// TODO: Deal with multiple connections
+// TODO: Deal with typos in on refs
+// TODO: Deal with multiple elements matching on PULL or SET_NULL
+// TODO: ADD github actions for publishing to NPM
+
 
 module.exports = {
    cascade,
