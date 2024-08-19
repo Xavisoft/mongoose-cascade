@@ -49,7 +49,8 @@ function makeTests(opts) {
          const referringSchemaObject = createReferringSchemaObject({ onDelete, referredModelName });
          const ReferringModel = mongoose.model(createModelName(), new mongoose.Schema(referringSchemaObject));
 
-         await mongoose.connection.syncIndexes();
+         await ReferredModel.init();
+         await ReferringModel.init();
          buildReferenceMap(true);
 
          // create documents
@@ -70,6 +71,9 @@ function makeTests(opts) {
                assert.isTrue(err instanceof DeleteRestrictedError);
                return;
             }
+
+            throw err;
+
          }
          
          // check DB
@@ -130,12 +134,8 @@ async function emptyDB() {
       db = mongoose.connection.db;
    }
 
-   // delete collections
-   const collections = await db.collections();
-   
-   for (const collection of collections) {
-      await collection.drop();
-   }
+   // delete database
+   await db.dropDatabase();
 
    // remove models to avoil resyncing
    for (const key in mongoose.models) {

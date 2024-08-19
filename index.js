@@ -48,7 +48,7 @@ async function cascade(Model, filter, opts={}) {
 
          for (const ref of refList) {
 
-            const { onDelete, model, attribute } = ref;
+            const { onDelete, model:ReferringModel, attribute } = ref;
 
             const filter = {
                [attribute]: {
@@ -58,23 +58,23 @@ async function cascade(Model, filter, opts={}) {
             
             switch (onDelete) {
                case ON_DELETE.CASCADE:
-                  await cascade(model, filter, { session });
+                  await cascade(ReferringModel, filter, { session });
                   break;
 
                case ON_DELETE.SET_NULL:
                   {
                      const { setNullOp } = ref;
                      const update = setNullOp || { [attribute]: null }
-                     await model.updateMany(filter, update, { session });
+                     await ReferringModel.updateMany(filter, update, { session });
                      break;
                   }
 
                case ON_DELETE.RESTRICT:
                   {
-                     const count = await model.countDocuments(filter, { session });
+                     const count = await ReferringModel.countDocuments(filter, { session });
 
                      if (count > 0) {
-                        const err = new DeleteRestrictedError(Model, deletedIds, model);
+                        const err = new DeleteRestrictedError(Model, deletedIds, ReferringModel);
                         err.code = ON_DELETE.RESTRICT;
                         throw err;
                      }
@@ -98,7 +98,7 @@ async function cascade(Model, filter, opts={}) {
       throw err;
    } finally {
       if (isSessionLocal)
-         session.endSession();
+         await session.endSession();
    }
 }
 
