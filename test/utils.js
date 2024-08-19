@@ -122,6 +122,7 @@ function createModelName() {
 
 async function emptyDB() {
    
+   // wait for connection
    let db = mongoose.connection.db;
 
    while (!db) {
@@ -129,10 +130,16 @@ async function emptyDB() {
       db = mongoose.connection.db;
    }
 
+   // delete collections
    const collections = await db.collections();
    
    for (const collection of collections) {
       await collection.drop();
+   }
+
+   // remove models to avoil resyncing
+   for (const key in mongoose.models) {
+      delete mongoose.models[key];
    }
 
 }
