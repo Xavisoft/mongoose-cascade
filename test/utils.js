@@ -1,11 +1,111 @@
 const casual = require('casual');
 const { default: mongoose } = require('mongoose');
+const { buildReferenceMap } = require('../utils');
+const { ON_DELETE } = require('../constants');
+const { assert } = require('chai');
+const DeleteRestrictedError = require('../DeleteRestrictedError');
+const { cascade } = require('..');
+
+
+/**
+ * @callback isNullSetCallback
+ * @param {import('mongoose').Document} doc
+ * @returns {boolean}
+ */
+
+/**
+ * @callback createReferringDocPayloadCallback
+ * @param {import('mongoose').Types.ObjectId} referredDocId
+ * @returns {object}
+ */
+
+/**
+ * @callback createReferringSchemaObjectCallback
+ * @param {object} opts
+ * @param {string} opts.onDelete
+ * @param {string} opts.referredModelName
+ * @returns {object}
+ */
 
 /**
  * 
- * @param {string} word 
- * @returns 
+ * @param {object} opts
+ * @param {createReferringDocPayloadCallback} opts.createReferringDocPayload 
+ * @param {isNullSetCallback} opts.isNullSet
+ * @param {createReferringSchemaObjectCallback} opts.createReferringSchemaObject
  */
+function makeTests(opts) {
+
+   Object.values(ON_DELETE).forEach(onDelete => {
+      test(onDelete, async () => {
+
+         await emptyDB();
+
+         // create models
+         const referredModelName = createModelName();
+         const ReferredModel = mongoose.model(referredModelName, new mongoose.Schema({}));
+
+         const { createReferringSchemaObject } = opts;
+         const referringSchemaObject = createReferringSchemaObject({ onDelete, referredModelName });
+         const ReferringModel = mongoose.model(createModelName(), new mongoose.Schema(referringSchemaObject));
+
+         await mongoose.connection.syncIndexes();
+         buildReferenceMap(true);
+
+         // create documents
+         const referredDoc = await ReferredModel.create({});
+         const { createReferringDocPayload } = opts;
+         const referringDocPayload = createReferringDocPayload(referredDoc._id);
+
+         await ReferringModel.create([
+            referringDocPayload,
+            referringDocPayload,
+         ]);
+
+         // delete
+         try {
+            await cascade(ReferredModel, { _id: referredDoc._id });
+         } catch (err) {
+            if (onDelete === ON_DELETE.RESTRICT) {
+               assert.isTrue(err instanceof DeleteRestrictedError);
+               return;
+            }
+         }
+         
+         // check DB
+         const shouldBeNull = await ReferredModel.findById(referredDoc._id);
+         assert.isNull(shouldBeNull);
+
+         switch (onDelete) {
+            case ON_DELETE.CASCADE:
+               { 
+                  const shouldBeZero = await ReferringModel.countDocuments();
+                  assert.equal(shouldBeZero, 0);
+                  break;
+               }
+
+            case ON_DELETE.SET_NULL:
+               { 
+                  const docs = await ReferringModel.find({});
+                  const { isNullSet } = opts;
+
+                  docs.forEach(doc => {
+                     assert.isTrue(isNullSet(doc));
+                  });
+
+                  break;
+
+               }
+
+            default:
+               throw Error(`Unknown onDelete value: ${onDelete}`);
+         }
+         
+
+      });
+   });
+}
+
 function capitalize(word='') {
    return (word.charAt(0)?.toLocaleUpperCase() || '') + word.substring(1).toLocaleLowerCase();
 }
@@ -49,4 +149,5 @@ module.exports = {
    createModelName,
    delay,
    emptyDB,
+   makeTests,
 }
