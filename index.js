@@ -63,7 +63,8 @@ async function cascade(Model, filter, opts={}) {
 
                case ON_DELETE.SET_NULL:
                   {
-                     const update = { [attribute]: null }
+                     const { setNullOp } = ref;
+                     const update = setNullOp || { [attribute]: null }
                      await model.updateMany(filter, update, { session });
                      break;
                   }

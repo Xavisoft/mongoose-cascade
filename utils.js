@@ -8,6 +8,7 @@ let _refLists;
  *    model: mongoose.Model,
  *    attribute: string,
  *    onDelete: string,
+ *    setNullOp: object | undefined,
  * }>}
  * }
  */
@@ -28,11 +29,24 @@ function buildReferenceMap(force=false) {
          let obj = schema[attribute];
 
          // TODO: this might now work everytime
-         if (Array.isArray(obj))
+         let isArray = false;
+         if (Array.isArray(obj)) {
             obj = obj[0];
+            isArray = true;
+         }
 
          if (typeof obj !== 'object') // can't have ref
             return;
+
+         if (Array.isArray(obj.type))
+            isArray = true;
+
+         let setNullOp;
+         if (isArray) {
+            setNullOp = {
+               [`${attribute}.$`]: null,
+            };
+         }
          
          const refModelName = obj.ref;
          if (!refModelName)
@@ -54,6 +68,7 @@ function buildReferenceMap(force=false) {
             model: Model,
             attribute,
             onDelete,
+            setNullOp
          });
 
       })
