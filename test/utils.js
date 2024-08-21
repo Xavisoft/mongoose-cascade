@@ -8,7 +8,7 @@ const { cascade } = require('..');
 
 
 /**
- * @callback isNullSetCallback
+ * @callback isDocModifiedAsExpectedCallback
  * @param {import('mongoose').Document} doc
  * @returns {boolean}
  */
@@ -31,12 +31,19 @@ const { cascade } = require('..');
  * 
  * @param {object} opts
  * @param {createReferringDocPayloadCallback} opts.createReferringDocPayload 
- * @param {isNullSetCallback} opts.isNullSet
+ * @param {isDocModifiedAsExpectedCallback} opts.isNullSet
+ * @param {isDocModifiedAsExpectedCallback} opts.isReferencePulled
  * @param {createReferringSchemaObjectCallback} opts.createReferringSchemaObject
  */
 function makeTests(opts) {
 
    Object.values(ON_DELETE).forEach(onDelete => {
+
+      if (onDelete === ON_DELETE.PULL) {
+         if (!opts.isReferencePulled)
+            return;
+      }
+
       test(onDelete, async () => {
 
          await emptyDB();
@@ -99,6 +106,18 @@ function makeTests(opts) {
 
                   break;
 
+               }
+
+            case ON_DELETE.PULL:
+               {
+                  const docs = await ReferringModel.find({});
+                  const { isReferencePulled } = opts;
+
+                  docs.forEach(doc => {
+                     assert.isTrue(isReferencePulled(doc));
+                  });
+
+                  break;
                }
 
             default:

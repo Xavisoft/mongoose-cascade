@@ -13,6 +13,9 @@ function isNullSet(doc) {
    return doc[attributeName][0] == null
 }
 
+function isReferencePulled(doc) {
+   return doc[attributeName].length === 0;
+}
 
 suite("Unnested array", function () {
 
@@ -32,6 +35,7 @@ suite("Unnested array", function () {
             }
          },
          isNullSet,
+         isReferencePulled,
       });
 
    });
@@ -52,6 +56,7 @@ suite("Unnested array", function () {
             }
          },
          isNullSet,
+         isReferencePulled,
       });
 
    });

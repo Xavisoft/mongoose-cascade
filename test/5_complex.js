@@ -20,6 +20,28 @@ suite('Complex', function() {
 
    const reversedPattern = [ ...pattern ].reverse();
 
+   // TODO: Also add PULL test when the format is [ { type: { ref_attribute: { type: Type }, ...other_attributes } } ]
+   let isReferencePulled;
+
+   if (reversedPattern[0].type === TYPES.ARRAY) {
+      
+      isReferencePulled = doc => {
+
+         let arr = doc;
+
+         for (let i = 0; i < (pattern.length - 1); i++) {
+            const { type, name } = pattern[i];
+            arr = arr[name];
+            if (type === TYPES.ARRAY)
+               arr = arr[0];
+         }
+
+         arr = arr[reversedPattern[0].name];
+         return arr.length === 0;
+         
+      }
+   }
+
    makeTests({
       createReferringSchemaObject({ onDelete, referredModelName }) {
          let schema;
@@ -103,6 +125,7 @@ suite('Complex', function() {
 
          return shouldBeNull === null;
 
-      }
+      },
+      isReferencePulled,
    });
 });

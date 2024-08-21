@@ -82,7 +82,14 @@ async function cascade(Model, filter, opts={}) {
                      break;
                   }
 
-               // TODO: Add PULL case
+               case ON_DELETE.PULL:
+
+                  {
+                     const { createPullOp } = ref;
+                     const update = (createPullOp && createPullOp(deletedIds)) || { $pull: { [attribute]: { $in: deletedIds }}}
+                     await ReferringModel.updateMany(filter, update, { session });
+                     break;
+                  }
             
                default:
                   break;

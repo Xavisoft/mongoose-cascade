@@ -2,6 +2,12 @@ const { default: mongoose } = require("mongoose");
 
 let _refLists;
 
+/** 
+ * @callback pullOpCallback
+ * @param {Array<mongoose.Schema.Types.ObjectId>} filter
+ * @returns {object}
+ */
+
 /**
  * 
  * @returns {Object<string,Array<{
@@ -9,6 +15,7 @@ let _refLists;
  *    attribute: string,
  *    onDelete: string,
  *    setNullOp: object | undefined,
+ *    createPullOp: pullOpCallback | undefined
  * }>}
  * }
  */
@@ -52,7 +59,6 @@ function processSchemaForRefs(schema, refLists, Model, path=[]) {
       // check if this attribute is a reference
       let obj = schema[attribute];
 
-      // TODO: this might now work everytime
       let isArray = false;
       if (Array.isArray(obj)) {
          obj = obj[0];
@@ -68,11 +74,22 @@ function processSchemaForRefs(schema, refLists, Model, path=[]) {
       path.push(attribute);
       const strPath = path.join('.');
 
-      let setNullOp;
+      let setNullOp, createPullOp;
       if (isArray) {
          setNullOp = {
             [`${strPath}.$`]: null,
          };
+
+         createPullOp = _ids => {
+            return {
+               $pull: {
+                  [strPath]: {
+                     $in: _ids
+                  }
+               }
+            }
+         }
+         
       }
       
       const refModelName = obj.ref;
@@ -98,7 +115,8 @@ function processSchemaForRefs(schema, refLists, Model, path=[]) {
          model: Model,
          attribute: strPath,
          onDelete,
-         setNullOp
+         setNullOp,
+         createPullOp,
       });
 
    })
