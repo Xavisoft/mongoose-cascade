@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const { createModelName, emptyDB } = require("./utils");
-const { cascade } = require("..");
+const { Cascade } = require("..");
 const { assert } = require("chai");
 const { ON_DELETE } = require("../constants");
 
@@ -28,6 +28,9 @@ suite("Session", function() {
       await mongoose.connection.syncIndexes();
 
       // with session
+      const cascade = new Cascade();
+      cascade.init();
+
       {
          // create docs
          const referredDoc = await ReferredModel.create({});
@@ -41,7 +44,7 @@ suite("Session", function() {
          const session = await mongoose.startSession();
          session.startTransaction();
 
-         await cascade(ReferredModel, { _id: referredDoc._id }, { session });
+         await cascade.delete(ReferredModel, { _id: referredDoc._id }, { session });
          await session.commitTransaction();
          await session.endSession();
 
@@ -65,7 +68,7 @@ suite("Session", function() {
          ]);
 
          // delete
-         await cascade(ReferredModel, { _id: referredDoc._id });
+         await cascade.delete(ReferredModel, { _id: referredDoc._id });
 
          // check db
          const shouldBeNull = await ReferredModel.findById(referredDoc._id);

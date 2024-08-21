@@ -4,7 +4,7 @@ const { buildReferenceMap } = require('../utils');
 const { ON_DELETE } = require('../constants');
 const { assert } = require('chai');
 const DeleteRestrictedError = require('../DeleteRestrictedError');
-const { cascade } = require('..');
+const { Cascade } = require('..');
 
 
 /**
@@ -71,8 +71,11 @@ function makeTests(opts) {
          ]);
 
          // delete
+         const cascade = new Cascade();
+         cascade.init();
+
          try {
-            await cascade(ReferredModel, { _id: referredDoc._id });
+            await cascade.delete(ReferredModel, { _id: referredDoc._id });
          } catch (err) {
             if (onDelete === ON_DELETE.RESTRICT) {
                assert.isTrue(err instanceof DeleteRestrictedError);
