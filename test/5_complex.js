@@ -48,16 +48,24 @@ suite('Complex', function() {
          const [ { type, name } ] = reversedPattern;
 
          if (type === TYPES.ARRAY) {
-            // TODO: randomly choose schema style
-            schema = {
-               [name]: {
+            let value;
+
+            if (casual.coin_flip) {
+               value = {
                   type: [ mongoose.SchemaTypes.ObjectId ],
                   ref: referredModelName,
                   onDelete,
                }
+            } else {
+               value = [{
+                  type: mongoose.SchemaTypes.ObjectId,
+                  ref: referredModelName,
+                  onDelete,
+               }]
             }
+
+            schema = { [name]: value }
          } else {
-            // TODO: randomly choose schema style
             schema = {
                [name]: {
                   type: mongoose.SchemaTypes.ObjectId,
@@ -70,17 +78,19 @@ suite('Complex', function() {
          for (let i = 1; i < reversedPattern.length; i++) {
             const { type, name } = reversedPattern[i];
             if (type === TYPES.ARRAY) {
-               // TODO: randomly choose schema style
-               schema = {
-                  [name]: {
+               let value;
+
+               if (casual.coin_flip) {
+                  value = {
                      type: [ schema ],
                   }
+               } else {
+                  value = [ schema ]
                }
+
+               schema = { [name]: value }
             } else {
-               // TODO: randomly choose schema style
-               schema = {
-                  [name]: schema,
-               }
+               schema = { [name]: schema, }
             }
          }
 
