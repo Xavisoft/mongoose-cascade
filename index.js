@@ -9,6 +9,8 @@ const { ON_DELETE } = constants;
 
 class Cascade {
 
+   static constants = constants;
+
    /**
     * 
     * @param {mongoose.Model} Model 
@@ -25,7 +27,7 @@ class Cascade {
       const isSessionLocal = session ? false : true;
 
       if (isSessionLocal) {
-         session = await mongoose.startSession();
+         session = await this._conn.startSession();
          session.startTransaction();
       }
 
@@ -116,14 +118,24 @@ class Cascade {
       }
    }
 
+   /**
+    * Initializes the object
+    */
    init() {
-      this._refLists = buildReferenceMap();
+      this._refLists = buildReferenceMap(this._conn);
       this._initialized = true;
+   }
+
+   /**
+    * 
+    * @param {mongoose.Connection} conn The mongoose connection to use. Defaults to {mongoose.connection}
+    */
+   constructor(conn=mongoose.connection) {
+      this._conn = conn;
    }
 
 }
 
-// TODO: Deal with multiple connections
 // TODO: Deal with multiple elements matching on PULL or SET_NULL
 // TODO: ADD github actions for publishing to NPM
 // TODO: Documentation

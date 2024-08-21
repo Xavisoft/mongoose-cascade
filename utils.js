@@ -1,15 +1,15 @@
-const { default: mongoose } = require("mongoose");
 
 /** 
  * @callback pullOpCallback
- * @param {Array<mongoose.Schema.Types.ObjectId>} filter
+ * @param {Array<import('mongoose').Schema.Types.ObjectId>} filter
  * @returns {object}
  */
 
 /**
  * 
+ * @param {import('mongoose').Connection} conn
  * @returns {Object<string,Array<{
- *    model: mongoose.Model,
+ *    model: import('mongoose').Model,
  *    attribute: string,
  *    onDelete: string,
  *    setNullOp: object | undefined,
@@ -17,12 +17,12 @@ const { default: mongoose } = require("mongoose");
  * }>}
  * }
  */
-function buildReferenceMap() {
+function buildReferenceMap(conn) {
 
    const refLists = {};
 
-   mongoose.modelNames().forEach(modelName => {
-      const Model = mongoose.model(modelName);
+   conn.modelNames().forEach(modelName => {
+      const Model = conn.model(modelName);
       const schema = Model.schema.obj;
       processSchemaForRefs(schema, refLists, Model);
    });
@@ -33,7 +33,7 @@ function buildReferenceMap() {
    for (const key in refLists)
       configuredCount += refLists[key].length;
 
-   const expectedCount = _countRefs();
+   const expectedCount = _countRefs(conn);
 
    if (configuredCount < expectedCount) {
       const message = 'This error is because the developer overlooked at least 1 way of defining a attributes in schema. Please try to be as verbose as possible to make this error go away';
@@ -117,7 +117,12 @@ function processSchemaForRefs(schema, refLists, Model, path=[]) {
 }
 
 
-function _countRefs() {
+/**
+ * 
+ * @param {import('mongoose').Connection} conn 
+ * @returns 
+ */
+function _countRefs(conn) {
 
    function countSchemaRefs(obj) {
       let count = 0;
@@ -143,8 +148,8 @@ function _countRefs() {
 
    let count = 0;
 
-   mongoose.modelNames().forEach(name => {
-      const model = mongoose.models[name];
+   conn.modelNames().forEach(name => {
+      const model = conn.models[name];
       count += countSchemaRefs(model.schema.obj)
    });
 
