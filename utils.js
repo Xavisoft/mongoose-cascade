@@ -1,7 +1,5 @@
 const { default: mongoose } = require("mongoose");
 
-let _refLists;
-
 /** 
  * @callback pullOpCallback
  * @param {Array<mongoose.Schema.Types.ObjectId>} filter
@@ -19,10 +17,7 @@ let _refLists;
  * }>}
  * }
  */
-function buildReferenceMap(force=false) {
-
-   if (!force && _refLists)
-      return _refLists;
+function buildReferenceMap() {
 
    const refLists = {};
 
@@ -47,7 +42,6 @@ function buildReferenceMap(force=false) {
       throw new Error('This should not happen. I messed up.');
    }
 
-   _refLists = refLists;
    return refLists;
 
 }

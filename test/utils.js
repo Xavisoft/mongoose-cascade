@@ -1,6 +1,5 @@
 const casual = require('casual');
 const { default: mongoose } = require('mongoose');
-const { buildReferenceMap } = require('../utils');
 const { ON_DELETE } = require('../constants');
 const { assert } = require('chai');
 const DeleteRestrictedError = require('../DeleteRestrictedError');
@@ -58,7 +57,6 @@ function makeTests(opts) {
 
          await ReferredModel.init();
          await ReferringModel.init();
-         buildReferenceMap(true);
 
          // create documents
          const referredDoc = await ReferredModel.create({});
