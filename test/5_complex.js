@@ -4,13 +4,14 @@ const { default: mongoose } = require("mongoose");
 
 suite('Complex', function() {
 
-   const levels = casual.integer(3, 5);
    const TYPES = {
       ARRAY: 'array',
       NOT_ARRAY: 'not-array',
    }
 
+   const levels = casual.integer(5, 7);
    const pattern = [];
+
    for (let i = 0; i < levels; i++) {
       pattern.push({
          type: casual.random_element(Object.values(TYPES)),

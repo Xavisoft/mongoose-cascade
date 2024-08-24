@@ -10,7 +10,7 @@ function createReferringDocPayload(_id) {
 }
 
 function isNullSet(doc) {
-   return doc[attributeName][0] == null
+   return doc[attributeName][0] === null
 }
 
 function isReferencePulled(doc) {

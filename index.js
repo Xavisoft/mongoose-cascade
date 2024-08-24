@@ -70,9 +70,9 @@ class Cascade {
 
                   case ON_DELETE.SET_NULL:
                      {
-                        const { setNullOp } = ref;
-                        const update = setNullOp || { [attribute]: null }
-                        await ReferringModel.updateMany(filter, update, { session });
+                        const { createSetNullOp } = ref;
+                        const { update, arrayFilters } = createSetNullOp(deletedIds);
+                        await ReferringModel.updateMany(filter, update, { session, arrayFilters });
                         break;
                      }
 
@@ -93,7 +93,7 @@ class Cascade {
 
                      {
                         const { createPullOp } = ref;
-                        const update = (createPullOp && createPullOp(deletedIds)) || { $pull: { [attribute]: { $in: deletedIds }}}
+                        const update = createPullOp(deletedIds)
                         await ReferringModel.updateMany(filter, update, { session });
                         break;
                      }
@@ -139,6 +139,7 @@ class Cascade {
 // TODO: Deal with multiple elements matching on PULL or SET_NULL
 // TODO: ADD github actions for publishing to NPM
 // TODO: Documentation
+// TODO: Add edge cases tests to check the effectiveness of the library (eg making sure it's not setting everything to null, etc);
 
 
 module.exports = {

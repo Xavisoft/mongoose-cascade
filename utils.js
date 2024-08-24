@@ -1,6 +1,6 @@
 
 /** 
- * @callback pullOpCallback
+ * @callback createOpCallback
  * @param {Array<import('mongoose').Schema.Types.ObjectId>} filter
  * @returns {object}
  */
@@ -12,8 +12,8 @@
  *    model: import('mongoose').Model,
  *    attribute: string,
  *    onDelete: string,
- *    setNullOp: object | undefined,
- *    createPullOp: pullOpCallback | undefined
+ *    createSetNullOp: createOpCallback | undefined,
+ *    createPullOp: createOpCallback | undefined
  * }>}
  * }
  */
@@ -65,16 +65,16 @@ function processSchemaForRefs(schema, refLists, Model, path=[]) {
       if (Array.isArray(obj.type))
          isArray = true;
 
-      path.push(attribute);
-      const strPath = path.join('.');
+      const newPath = [ ...path, { attribute, isArray } ]
+      const strPath = generateAttributePath(newPath);
 
-      let setNullOp, createPullOp;
+      let createPullOp;
       if (isArray) {
-         setNullOp = {
-            [`${strPath}.$`]: null,
-         };
-
+         // TODO: revise this
          createPullOp = _ids => {
+
+            const strPath = path.length > 0 ? generateAttributePath(path) + `.${attribute}` : attribute;
+
             return {
                $pull: {
                   [strPath]: {
@@ -86,11 +86,61 @@ function processSchemaForRefs(schema, refLists, Model, path=[]) {
          
       }
       
+      const createSetNullOp = _ids => {
+
+         // array filters
+         const arr = [];
+         let gotArray = false;
+         const reversedPath = [ ...newPath ].reverse();
+
+         for (const item of reversedPath) {
+            if (item.isArray) {
+               gotArray = true;
+               break;
+            }
+            arr.unshift(item.attribute);
+         }
+
+         const arrayFilters = [];
+         const ARRAY_FILTER_IDENTIFIER = 'elem';
+
+         if (gotArray) {
+            const path = [ ARRAY_FILTER_IDENTIFIER, ...arr ].join('.');
+            arrayFilters.push({ [path]: { $in: _ids } })
+         }
+
+         // set operator
+         let path;
+         if (gotArray) {
+            const $BRACES = '$[]';
+            const lastIndexOf$Braces = strPath.lastIndexOf($BRACES);
+            path = strPath.substring(0, lastIndexOf$Braces) + `$[${ARRAY_FILTER_IDENTIFIER}]` + strPath.substring(lastIndexOf$Braces + $BRACES.length);
+         } else {
+            path = strPath;
+         }
+
+         const update = {
+            [path]: null
+         }
+
+         return { arrayFilters, update }
+
+      }
+      
       const refModelName = obj.ref;
       if (!refModelName) {
-         const schema = obj.type || obj;
-         processSchemaForRefs(schema, refLists, Model, path);
-         return;
+         let schema;
+
+         if (obj.type) {
+            if (Array.isArray(obj.type))
+               schema = obj.type[0];
+            else
+               schema = obj.type;
+         } else {
+            schema = obj;
+         }
+         
+         return processSchemaForRefs(schema, refLists, Model, newPath);
       }
 
       const { onDelete } = obj;
@@ -107,13 +157,25 @@ function processSchemaForRefs(schema, refLists, Model, path=[]) {
 
       refList.push({
          model: Model,
-         attribute: strPath,
+         attribute: newPath
+            .map(item => item.attribute)
+            .join('.'),
          onDelete,
-         setNullOp,
+         createSetNullOp,
          createPullOp,
       });
 
    })
+}
+
+function generateAttributePath(path) {
+   return path
+      .map(({ attribute, isArray }) => {
+         if (!isArray)
+            return attribute;
+         return `${attribute}.$[]`;
+      })
+   .join('.');
 }
 
 
