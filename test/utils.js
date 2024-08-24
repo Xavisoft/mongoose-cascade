@@ -114,9 +114,14 @@ function makeTests(opts) {
                   const docs = await ReferringModel.find({});
                   const { isReferencePulled } = opts;
 
-                  docs.forEach(doc => {
-                     assert.isTrue(isReferencePulled(doc));
-                  });
+                  try {
+                     docs.forEach(doc => {
+                        assert.isTrue(isReferencePulled(doc));
+                     });
+                  } catch {
+                     console.log(JSON.stringify(docs, 0, 3));
+                     process.exit();
+                  }
 
                   break;
                }

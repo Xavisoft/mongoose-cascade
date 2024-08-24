@@ -94,7 +94,12 @@ class Cascade {
                      {
                         const { createPullOp } = ref;
                         const update = createPullOp(deletedIds)
-                        await ReferringModel.updateMany(filter, update, { session });
+                        const toBeRemoved = await ReferringModel.updateMany(filter, update, { session });
+                        if (!toBeRemoved.acknowledged) {
+                           console.log(JSON.stringify(update, 0, 3));
+                           console.log(JSON.stringify(ReferringModel.schema.obj, 0, 3));
+                           process.exit();
+                        }
                         break;
                      }
                
@@ -140,6 +145,7 @@ class Cascade {
 // TODO: ADD github actions for publishing to NPM
 // TODO: Documentation
 // TODO: Add edge cases tests to check the effectiveness of the library (eg making sure it's not setting everything to null, etc);
+// TODO: Add comments
 
 
 module.exports = {

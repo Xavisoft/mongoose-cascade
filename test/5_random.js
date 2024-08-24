@@ -2,7 +2,7 @@ const casual = require("casual");
 const { makeTests } = require("./utils");
 const { default: mongoose } = require("mongoose");
 
-suite('Complex', function() {
+suite('Random schemas', function() {
 
    const TYPES = {
       ARRAY: 'array',
@@ -21,23 +21,29 @@ suite('Complex', function() {
 
    const reversedPattern = [ ...pattern ].reverse();
 
-   // TODO: Also add PULL test when the format is [ { type: { ref_attribute: { type: Type }, ...other_attributes } } ]
    let isReferencePulled;
 
-   if (reversedPattern[0].type === TYPES.ARRAY) {
+   if (pattern.some(item => item.type === TYPES.ARRAY)) {
       
       isReferencePulled = doc => {
 
+         // find the last array index
+         let lastIndexOfArrayAttribute = 0;
+         for (let i = 0; i < pattern.length; i++) {
+            if (pattern[i].type == TYPES.ARRAY)
+               lastIndexOfArrayAttribute = i;;
+         }
+
          let arr = doc;
 
-         for (let i = 0; i < (pattern.length - 1); i++) {
+         for (let i = 0; i < lastIndexOfArrayAttribute; i++) {
             const { type, name } = pattern[i];
             arr = arr[name];
             if (type === TYPES.ARRAY)
                arr = arr[0];
          }
 
-         arr = arr[reversedPattern[0].name];
+         arr = arr[pattern[lastIndexOfArrayAttribute].name];
          return arr.length === 0;
          
       }

@@ -5,6 +5,8 @@
  * @returns {object}
  */
 
+const { ON_DELETE } = require('./constants');
+
 /**
  * 
  * @param {import('mongoose').Connection} conn
@@ -65,67 +67,7 @@ function processSchemaForRefs(schema, refLists, Model, path=[]) {
       if (Array.isArray(obj.type))
          isArray = true;
 
-      const newPath = [ ...path, { attribute, isArray } ]
-      const strPath = generateAttributePath(newPath);
-
-      let createPullOp;
-      if (isArray) {
-         // TODO: revise this
-         createPullOp = _ids => {
-
-            const strPath = path.length > 0 ? generateAttributePath(path) + `.${attribute}` : attribute;
-
-            return {
-               $pull: {
-                  [strPath]: {
-                     $in: _ids
-                  }
-               }
-            }
-         }
-         
-      }
-      
-      const createSetNullOp = _ids => {
-
-         // array filters
-         const arr = [];
-         let gotArray = false;
-         const reversedPath = [ ...newPath ].reverse();
-
-         for (const item of reversedPath) {
-            if (item.isArray) {
-               gotArray = true;
-               break;
-            }
-            arr.unshift(item.attribute);
-         }
-
-         const arrayFilters = [];
-         const ARRAY_FILTER_IDENTIFIER = 'elem';
-
-         if (gotArray) {
-            const path = [ ARRAY_FILTER_IDENTIFIER, ...arr ].join('.');
-            arrayFilters.push({ [path]: { $in: _ids } })
-         }
-
-         // set operator
-         let path;
-         if (gotArray) {
-            const $BRACES = '$[]';
-            const lastIndexOf$Braces = strPath.lastIndexOf($BRACES);
-            path = strPath.substring(0, lastIndexOf$Braces) + `$[${ARRAY_FILTER_IDENTIFIER}]` + strPath.substring(lastIndexOf$Braces + $BRACES.length);
-         } else {
-            path = strPath;
-         }
-
-         const update = {
-            [path]: null
-         }
-
-         return { arrayFilters, update }
-
-      }
+      const newPath = [ ...path, { attribute, isArray } ];
       
       const refModelName = obj.ref;
       if (!refModelName) {
@@ -148,6 +90,88 @@ function processSchemaForRefs(schema, refLists, Model, path=[]) {
          return;
 
       // record reference
+      /// function to create operation for pulling array elements
+      let createPullOp;
+
+      if (onDelete === ON_DELETE.PULL) {
+         let lastIndexOfArrayAttribute;
+         for (let i = 0; i < newPath.length; i++) {
+            if (newPath[i].isArray)
+               lastIndexOfArrayAttribute = i;
+         }
+
+         createPullOp = _ids => {
+
+            if (lastIndexOfArrayAttribute === undefined)
+               return {};
+
+            const pathUpToLastArray = newPath.slice(0, lastIndexOfArrayAttribute);
+            const pathAfterLastArray = newPath.slice(lastIndexOfArrayAttribute + 1);
+            const lastArrayAttribute = newPath[lastIndexOfArrayAttribute].attribute;
+            const strPathUpToLastArray = pathUpToLastArray.length ? generateAttributePath(pathUpToLastArray) + `.${lastArrayAttribute}` : lastArrayAttribute;
+            const strPathAfterLastArray = generateAttributePath(pathAfterLastArray);
+
+            const $in = _ids
+            const filter = strPathAfterLastArray ? { [strPathAfterLastArray]: { $in } } : { $in }
+            
+            return {
+               $pull: {
+                  [strPathUpToLastArray]: filter,
+               }
+            }
+         }
+         
+      }
+
+      /// function to create operation for setting reference to null
+      let createSetNullOp;
+
+      if (onDelete === ON_DELETE.SET_NULL) {
+         createSetNullOp = _ids => {
+
+            // array filters
+            const arr = [];
+            let gotArray = false;
+            const reversedPath = [ ...newPath ].reverse();
+
+            for (const item of reversedPath) {
+               if (item.isArray) {
+                  gotArray = true;
+                  break;
+               }
+               arr.unshift(item.attribute);
+            }
+
+            const arrayFilters = [];
+            const ARRAY_FILTER_IDENTIFIER = 'elem';
+
+            if (gotArray) {
+               const path = [ ARRAY_FILTER_IDENTIFIER, ...arr ].join('.');
+               arrayFilters.push({ [path]: { $in: _ids } })
+            }
+
+            // set operator
+            let path;
+            const strPath = generateAttributePath(newPath);
+
+            if (gotArray) {
+               const $BRACES = '$[]';
+               const lastIndexOf$Braces = strPath.lastIndexOf($BRACES);
+               path = strPath.substring(0, lastIndexOf$Braces) + `$[${ARRAY_FILTER_IDENTIFIER}]` + strPath.substring(lastIndexOf$Braces + $BRACES.length);
+            } else {
+               path = strPath;
+            }
+
+            const update = {
+               [path]: null
+            }
+
+            return { arrayFilters, update }
+
+         }
+      }
+
+      /// add to lists
       let refList = refLists[refModelName];
 
       if (!refList) {
