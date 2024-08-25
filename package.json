@@ -12,7 +12,8 @@
   },
   "keywords": [
     "mongoose",
-    "mongodb"
+    "mongodb",
+    "data-integrity"
   ],
   "author": "Xavier Mukodi",
   "license": "ISC",
