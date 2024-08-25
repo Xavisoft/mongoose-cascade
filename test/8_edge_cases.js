@@ -38,13 +38,16 @@ suite("Edge cases", function() {
                      await cascade.delete(Model, { _id: referredDoc._id });
                   } catch (err) {
                      if (onDelete === ON_DELETE.RESTRICT) {
-                        if (err instanceof DeleteRestrictedError) {
-                           const iAmNotDeleted = await Model.findById(referredDoc._id);
-                           assert.isNotNull(iAmNotDeleted);
-                           const meNeither = await Model.findById(referringDoc._id);
-                           assert.isNotNull(meNeither);
-                           return;
-                        }
+                        // should raise this specific error
+                        assert.isTrue(err instanceof DeleteRestrictedError);
+                        
+                        // nothing should be deleted
+                        const iAmNotDeleted = await Model.findById(referredDoc._id);
+                        assert.isNotNull(iAmNotDeleted);
+                        const meNeither = await Model.findById(referringDoc._id);
+                        assert.isNotNull(meNeither);
+                        
+                        return;
                      }
 
                      throw err;
@@ -116,11 +119,10 @@ suite("Edge cases", function() {
                      await cascade.delete(Model, { _id: doc._id });
                   } catch (err) {
                      if (onDelete === ON_DELETE.RESTRICT) {
-                        if (err instanceof DeleteRestrictedError) {
-                           const iAmNotDeleted = await Model.findById(doc._id);
-                           assert.isNotNull(iAmNotDeleted);
-                           return;
-                        }
+                        assert.isTrue(err instanceof DeleteRestrictedError);
+                        const iAmNotDeleted = await Model.findById(doc._id);
+                        assert.isNotNull(iAmNotDeleted);
+                        return;
                      }
 
                      throw err;
@@ -134,6 +136,4 @@ suite("Edge cases", function() {
             });
       });
    });
-
-   // TODO: Doc referring to itself (all onDeletes)
 });

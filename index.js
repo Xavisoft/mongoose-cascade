@@ -152,7 +152,6 @@ class Cascade {
 // TODO: ADD github actions for publishing to NPM
 // TODO: Documentation
 // TODO: Add comments
-// TODO: onDelete: restrict tests should test if docs are still intact (for now its only checking there error was raised)
 // TODO: Make sure that if you raise DeleteRestrictedError and the developer still commits the session, it wont commit
 // TODO: Edge case: what happens if an attribute is an array of an array, and its in this form { attribute: [ { type: [ { type: Type } ]} ]}
 // TODO: Consider schemas used by defining type as Array | DocumentArray | Subdocument

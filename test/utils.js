@@ -65,7 +65,7 @@ function makeTests(opts) {
          const { createReferringDocPayload } = opts;
          const referringDocPayload = createReferringDocPayload(referredDoc._id);
 
-         await ReferringModel.create([
+         const referringDocs = await ReferringModel.create([
             referringDocPayload,
             referringDocPayload,
          ]);
@@ -78,7 +78,16 @@ function makeTests(opts) {
             await cascade.delete(ReferredModel, { _id: referredDoc._id });
          } catch (err) {
             if (onDelete === ON_DELETE.RESTRICT) {
+               // should raise this specific error
                assert.isTrue(err instanceof DeleteRestrictedError);
+
+               // nothing should be deleted
+               const iAmNotDeleted = await ReferredModel.findById(referredDoc._id);
+               assert.isNotNu;;(iAmNotDeleted);
+
+               const referringDocsCount = await ReferringModel.countDocuments();
+               assert.equal(referringDocsCount, referringDocs.length);
+
                return;
             }
 

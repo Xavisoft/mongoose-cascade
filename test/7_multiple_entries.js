@@ -78,7 +78,16 @@ function makeEdgeCaseTest(onDelete, isFlat=true) {
          await cascade.delete(ReferredModel, { _id: { $in: idsToBeDeleted }});
       } catch (err) {
          if (ON_DELETE.RESTRICT) {
+            // should raise the following type of error
             assert.isTrue(err instanceof DeleteRestrictedError);
+
+            // nothing should have been deleted
+            const referredDocsFinalCount = await ReferredModel.countDocuments();
+            assert.equal(referredDocsFinalCount, referredDocsCount);
+
+            const referringDocsFinalCount = await ReferringModel.countDocuments();
+            assert.equal(referringDocsFinalCount, referringDocs.length);
+
             return;
          }
 
