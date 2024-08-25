@@ -38,6 +38,8 @@ function makeTests(opts) {
 
    Object.values(ON_DELETE).forEach(onDelete => {
 
+      // do not test for onDelete: PULL if the call back to verify
+      // if the PULL operation is not provided
       if (onDelete === ON_DELETE.PULL) {
          if (!opts.isReferencePulled)
             return;
@@ -91,6 +93,7 @@ function makeTests(opts) {
          switch (onDelete) {
             case ON_DELETE.CASCADE:
                { 
+                  // all the referring docs must have been deleted
                   const shouldBeZero = await ReferringModel.countDocuments();
                   assert.equal(shouldBeZero, 0);
                   break;
@@ -98,6 +101,7 @@ function makeTests(opts) {
 
             case ON_DELETE.SET_NULL:
                { 
+                  // all refs must have been set to null
                   const docs = await ReferringModel.find({});
                   const { isNullSet } = opts;
 
@@ -111,17 +115,13 @@ function makeTests(opts) {
 
             case ON_DELETE.PULL:
                {
+                  // all refs should be removed from their respective arrays
                   const docs = await ReferringModel.find({});
                   const { isReferencePulled } = opts;
 
-                  try {
-                     docs.forEach(doc => {
-                        assert.isTrue(isReferencePulled(doc));
-                     });
-                  } catch {
-                     console.log(JSON.stringify(docs, 0, 3));
-                     process.exit();
-                  }
+                  docs.forEach(doc => {
+                     assert.isTrue(isReferencePulled(doc));
+                  });
 
                   break;
                }

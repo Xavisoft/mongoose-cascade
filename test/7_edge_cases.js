@@ -14,10 +14,12 @@ function pickRandom(arr=[], count=1) {
       if (arr.length == 0)
          break;
 
+      // choose randomly
       const index = casual.integer(0, arr.length - 1);
       const choice = arr[index];
       picked.push(choice);
 
+      // remove chosen from the choice list
       arr = arr.filter(item => item != choice);
 
    }
@@ -146,8 +148,10 @@ suite("Edge cases", function() {
    Object
       .values(ON_DELETE)
       .forEach(onDelete => {
-         makeEdgeCaseTest(onDelete, true);
-         makeEdgeCaseTest(onDelete, false);
-      })
+         makeEdgeCaseTest(onDelete, true); // reference array is flat, i.e. it's an array of ref ObjectIds 
+         makeEdgeCaseTest(onDelete, false); // array is an array of objects containing attributes that a refs
+      });
 
 })
+
+// TODO: Test for self reference

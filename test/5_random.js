@@ -21,19 +21,22 @@ suite('Random schemas', function() {
 
    const reversedPattern = [ ...pattern ].reverse();
 
+   // if schema includes an array on any level, add test
+   // for ONDELETE: PULL
    let isReferencePulled;
 
    if (pattern.some(item => item.type === TYPES.ARRAY)) {
       
       isReferencePulled = doc => {
 
-         // find the last array index
+         // find the last array attribute index in pattern
          let lastIndexOfArrayAttribute = 0;
          for (let i = 0; i < pattern.length; i++) {
             if (pattern[i].type == TYPES.ARRAY)
                lastIndexOfArrayAttribute = i;;
          }
 
+         // find the last array in doc
          let arr = doc;
 
          for (let i = 0; i < lastIndexOfArrayAttribute; i++) {
@@ -44,6 +47,8 @@ suite('Random schemas', function() {
          }
 
          arr = arr[pattern[lastIndexOfArrayAttribute].name];
+
+         // check if empty
          return arr.length === 0;
          
       }
@@ -54,7 +59,10 @@ suite('Random schemas', function() {
          let schema;
          const [ { type, name } ] = reversedPattern;
 
+         // leaf attribute schema
          if (type === TYPES.ARRAY) {
+
+            // choose randomly how to represent an array
             let value;
 
             if (casual.coin_flip) {
@@ -82,9 +90,12 @@ suite('Random schemas', function() {
             }
          }
 
+         // build subsequent attribute schemas up to the root
          for (let i = 1; i < reversedPattern.length; i++) {
             const { type, name } = reversedPattern[i];
             if (type === TYPES.ARRAY) {
+
+               // choose randomly how to represent an array
                let value;
 
                if (casual.coin_flip) {
@@ -96,6 +107,7 @@ suite('Random schemas', function() {
                }
 
                schema = { [name]: value }
+
             } else {
                schema = { [name]: schema, }
             }
@@ -107,6 +119,7 @@ suite('Random schemas', function() {
       createReferringDocPayload(_id) {
          let payload;
 
+         // create leaf attribute
          const [ { name, type }] = reversedPattern;
 
          if (type === TYPES.ARRAY) {
@@ -115,6 +128,7 @@ suite('Random schemas', function() {
             payload = { [name]: _id }
          }
 
+         // create subsequent attributes up to the root
          for (let i = 1; i < reversedPattern.length; i++) {
             const { type, name } = reversedPattern[i];
 
@@ -133,6 +147,7 @@ suite('Random schemas', function() {
 
          let shouldBeNull = doc;
 
+         // iterate until reaching the leaf atrribute
          for (let i in pattern) {
             const { type, name } = pattern[i];
             shouldBeNull = shouldBeNull[name];

@@ -21,6 +21,7 @@ const { ON_DELETE } = require('./constants');
  */
 function buildReferenceMap(conn) {
 
+   // build reference list
    const refLists = {};
 
    conn.modelNames().forEach(modelName => {
@@ -57,22 +58,25 @@ function processSchemaForRefs(schema, refLists, Model, path=[]) {
 
       let isArray = false;
       if (Array.isArray(obj)) {
+         // indicate that it's an array and focus on the schema part
          obj = obj[0];
          isArray = true;
       }
 
-      if (typeof obj !== 'object') // can't have ref
-         return;
+      if (typeof obj !== 'object') 
+         return; // can't have ref
 
       if (Array.isArray(obj.type))
-         isArray = true;
+         isArray = true; // indicate that it's an array
 
       const newPath = [ ...path, { attribute, isArray } ];
       
       const refModelName = obj.ref;
       if (!refModelName) {
+         // recursively deal with the schema
          let schema;
 
+         // TODO: explain here
          if (obj.type) {
             if (Array.isArray(obj.type))
                schema = obj.type[0];
@@ -94,6 +98,8 @@ function processSchemaForRefs(schema, refLists, Model, path=[]) {
       let createPullOp;
 
       if (onDelete === ON_DELETE.PULL) {
+         // TODO: Explain here
+
          let lastIndexOfArrayAttribute;
          for (let i = 0; i < newPath.length; i++) {
             if (newPath[i].isArray)
@@ -127,6 +133,7 @@ function processSchemaForRefs(schema, refLists, Model, path=[]) {
       let createSetNullOp;
 
       if (onDelete === ON_DELETE.SET_NULL) {
+         // TODO: Explain here
          createSetNullOp = _ids => {
 
             // array filters
@@ -213,6 +220,7 @@ function _countRefs(conn) {
    function countSchemaRefs(obj) {
       let count = 0;
 
+      // recursively count all objects where ref and onDelete are available
       if (typeof obj === 'object') {
          if (Array.isArray(obj)) {
             obj.forEach(item => {
@@ -232,6 +240,8 @@ function _countRefs(conn) {
       return count;
    }
 
+
+   // count refs on each model
    let count = 0;
 
    conn.modelNames().forEach(name => {

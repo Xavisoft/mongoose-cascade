@@ -10,9 +10,11 @@ suite("Multiple connections", function() {
       await emptyDB();
 
       // models
+      /// names
       const referredModelName = createModelName();
       const referringModelName = createModelName();
 
+      /// schemas
       const referredSchema = new Schema({});
       const referringSchema = new Schema({
          attribute: {
@@ -23,11 +25,13 @@ suite("Multiple connections", function() {
          }
       });
 
+      /// default connection models
       const DefaultReferredModel = mongoose.model(referredModelName, referredSchema);
       const DefaultReferringModel = mongoose.model(referringModelName, referringSchema);
       await DefaultReferredModel.init();
       await DefaultReferringModel.init();
 
+      /// conn2 models
       const conn2 = mongoose.createConnection('mongodb://localhost:27017/conn-2');
       const Conn2ReferredModel = conn2.model(referredModelName, referredSchema);
       const Conn2ReferringModel = conn2.model(referringModelName, referringSchema);
