@@ -89,6 +89,12 @@ class Cascade {
                            if (count > 0) {
                               const err = new DeleteRestrictedError(Model, deletedIds, ReferringModel);
                               err.code = ON_DELETE.RESTRICT;
+
+                              // this part is for your own safety
+                              session.commitTransaction = () => {
+                                 throw new Error(`I don't think it's a good idea to commit the transaction after "${err.name}" is thrown. You might wanna rethink some of your life choices 😜`)
+                              }
+
                               throw err;
                            }
 
@@ -152,7 +158,6 @@ class Cascade {
 // TODO: ADD github actions for publishing to NPM
 // TODO: Documentation
 // TODO: Add comments
-// TODO: Make sure that if you raise DeleteRestrictedError and the developer still commits the session, it wont commit
 // TODO: Edge case: what happens if an attribute is an array of an array, and its in this form { attribute: [ { type: [ { type: Type } ]} ]}
 // TODO: Consider schemas used by defining type as Array | DocumentArray | Subdocument
 
