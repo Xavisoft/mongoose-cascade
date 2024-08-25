@@ -85,6 +85,54 @@ suite("Edge cases", function() {
                });
             });
       });
+
+      suite("Doc", function() {
+         Object
+            .values(ON_DELETE)
+            .forEach(onDelete => {
+               test(onDelete, async () => {
+                  // create model
+                  const modelName = createModelName();
+                  const Model = mongoose.model(modelName, new Schema({
+                     parents: {
+                        type: [ SchemaTypes.ObjectId ],
+                        ref: modelName,
+                        onDelete,
+                     }
+                  }));
+
+                  await Model.init();
+
+                  // create doc
+                  const doc = await Model.create({});
+                  doc.parents.push(doc._id);
+                  await doc.save();
+
+                  // delete
+                  const cascade = new Cascade();
+                  cascade.init();
+
+                  try {
+                     await cascade.delete(Model, { _id: doc._id });
+                  } catch (err) {
+                     if (onDelete === ON_DELETE.RESTRICT) {
+                        if (err instanceof DeleteRestrictedError) {
+                           const iAmNotDeleted = await Model.findById(doc._id);
+                           assert.isNotNull(iAmNotDeleted);
+                           return;
+                        }
+                     }
+
+                     throw err;
+                  }
+
+                  // check db
+                  const docs = await Model.find({});
+                  assert.isEmpty(docs);
+
+               });
+            });
+      });
    });
 
    // TODO: Doc referring to itself (all onDeletes)
