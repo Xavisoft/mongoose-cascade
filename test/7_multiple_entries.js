@@ -143,7 +143,7 @@ function makeEdgeCaseTest(onDelete, isFlat=true) {
 }
 
 
-suite("Edge cases", function() {
+suite("Multiple docs, multiple entries", function() {
 
    Object
       .values(ON_DELETE)
