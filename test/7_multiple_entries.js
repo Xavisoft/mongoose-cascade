@@ -153,5 +153,3 @@ suite("Multiple docs, multiple entries", function() {
       });
 
 })
-
-// TODO: Test for self reference

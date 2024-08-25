@@ -21,7 +21,7 @@ class Cascade {
    async delete(Model, filter, opts={}) {
 
       // initialize
-      if (this._initialized)
+      if (!this._initialized)
          this.init();
 
       // create session if no session is provided
@@ -46,71 +46,73 @@ class Cascade {
 
          const deletedIds = docs.map(doc => doc._id);
          
-         // delete
-         await Model.deleteMany(filter, { session });
+         if (deletedIds.length > 0) {
+            // delete
+            await Model.deleteMany({ _id: { $in: deletedIds }}, { session });
 
-         // cascade
-         const modelName = Model.modelName;
-         const refList = refLists[modelName];
+            // cascade
+            const modelName = Model.modelName;
+            const refList = refLists[modelName];
 
-         if (refList) {
+            if (refList) {
 
-            for (const ref of refList) {
+               for (const ref of refList) {
 
-               const { onDelete, model:ReferringModel, attribute } = ref;
+                  const { onDelete, model:ReferringModel, attribute } = ref;
 
-               const filter = {
-                  [attribute]: {
-                     $in: deletedIds
+                  const filter = {
+                     [attribute]: {
+                        $in: deletedIds
+                     }
+                  }; // the filter targets every doc that reference the deleted docs
+                  
+                  switch (onDelete) {
+                     case ON_DELETE.CASCADE:
+                        // delete all documents in this model that are referring to the deleted documents
+                        await this.delete(ReferringModel, filter, { session });
+                        break;
+
+                     case ON_DELETE.SET_NULL:
+                        {
+                           // set every reference to the deleted docs to null
+                           const { createSetNullOp } = ref;
+                           const { update, arrayFilters } = createSetNullOp(deletedIds);
+                           await ReferringModel.updateMany(filter, update, { session, arrayFilters });
+                           break;
+                        }
+
+                     case ON_DELETE.RESTRICT:
+                        {
+                           // raise an error to abort if there are some documents still referring to the deleted documents
+                           const count = await ReferringModel.countDocuments(filter, { session });
+
+                           if (count > 0) {
+                              const err = new DeleteRestrictedError(Model, deletedIds, ReferringModel);
+                              err.code = ON_DELETE.RESTRICT;
+                              throw err;
+                           }
+
+                           break;
+                        }
+
+                     case ON_DELETE.PULL:
+
+                        {
+                           // remove all references to the deleted docs from their respective arrays
+                           const { createPullOp } = ref;
+                           const update = createPullOp(deletedIds)
+                           const toBeRemoved = await ReferringModel.updateMany(filter, update, { session });
+                           if (!toBeRemoved.acknowledged) {
+                              console.log(JSON.stringify(update, 0, 3));
+                              console.log(JSON.stringify(ReferringModel.schema.obj, 0, 3));
+                              process.exit();
+                           }
+                           break;
+                        }
+                  
+                     default:
+                        throw new Error('Invalid onDelete value: ' + onDelete);
                   }
-               }; // the filter targets every doc that reference the deleted docs
-               
-               switch (onDelete) {
-                  case ON_DELETE.CASCADE:
-                     // delete all documents in this model that are referring to the deleted documents
-                     await this.delete(ReferringModel, filter, { session });
-                     break;
-
-                  case ON_DELETE.SET_NULL:
-                     {
-                        // set every reference to the deleted docs to null
-                        const { createSetNullOp } = ref;
-                        const { update, arrayFilters } = createSetNullOp(deletedIds);
-                        await ReferringModel.updateMany(filter, update, { session, arrayFilters });
-                        break;
-                     }
-
-                  case ON_DELETE.RESTRICT:
-                     {
-                        // raise an error to abort if there are some documents still referring to the deleted documents
-                        const count = await ReferringModel.countDocuments(filter, { session });
-
-                        if (count > 0) {
-                           const err = new DeleteRestrictedError(Model, deletedIds, ReferringModel);
-                           err.code = ON_DELETE.RESTRICT;
-                           throw err;
-                        }
-
-                        break;
-                     }
-
-                  case ON_DELETE.PULL:
-
-                     {
-                        // remove all references to the deleted docs from their respective arrays
-                        const { createPullOp } = ref;
-                        const update = createPullOp(deletedIds)
-                        const toBeRemoved = await ReferringModel.updateMany(filter, update, { session });
-                        if (!toBeRemoved.acknowledged) {
-                           console.log(JSON.stringify(update, 0, 3));
-                           console.log(JSON.stringify(ReferringModel.schema.obj, 0, 3));
-                           process.exit();
-                        }
-                        break;
-                     }
-               
-                  default:
-                     throw new Error('Invalid onDelete value: ' + onDelete);
                }
             }
          }
@@ -153,7 +155,7 @@ class Cascade {
 // TODO: onDelete: restrict tests should test if docs are still intact (for now its only checking there error was raised)
 // TODO: Make sure that if you raise DeleteRestrictedError and the developer still commits the session, it wont commit
 // TODO: Edge case: what happens if an attribute is an array of an array, and its in this form { attribute: [ { type: [ { type: Type } ]} ]}
-
+// TODO: Consider schemas used by defining type as Array | DocumentArray | Subdocument
 
 module.exports = {
    Cascade,
