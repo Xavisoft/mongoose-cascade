@@ -1,6 +1,9 @@
 const { default: mongoose } = require("mongoose");
 
 module.exports = class DeleteRestrictedError extends mongoose.MongooseError {
+   
+   name = 'DeleteRestrictedError'
+
    /**
     * 
     * @param {mongoose.Model} restrictedModel 

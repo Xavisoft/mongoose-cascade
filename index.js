@@ -141,10 +141,8 @@ class Cascade {
 
 }
 
-// TODO: Deal with multiple elements matching on PULL or SET_NULL
 // TODO: ADD github actions for publishing to NPM
 // TODO: Documentation
-// TODO: Add edge cases tests to check the effectiveness of the library (eg making sure it's not setting everything to null, etc);
 // TODO: Add comments
 
 
