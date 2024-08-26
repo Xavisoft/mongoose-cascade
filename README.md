@@ -26,13 +26,13 @@ const User = mongoose.model('User', new Schema({
    surname: String,
 }));
 
-const Comment = mongoose.model('User', new Schema({
+const Comment = mongoose.model('Comment', new Schema({
    text: String,
    user: {
       type: mongoose.SchemaTypes.ObjectId,
       ref: 'User',
       onDelete: ON_DELETE.SET_NULL,
-   }
+   },
    createdAt: Date,
 }));
 
@@ -44,7 +44,7 @@ const cap = await User.create({
 
 const comment = await Comment.create({
    text: 'I can do this all day!',
-   user: cap._id
+   user: cap._id,
    createdAt: new Date(),
 });
 
