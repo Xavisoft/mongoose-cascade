@@ -12,11 +12,11 @@ class Cascade {
    static constants = constants;
 
    /**
-    * 
-    * @param {mongoose.Model} Model 
-    * @param {object} filter
+    * Method to delete, cascading as per schema definitions
+    * @param {mongoose.Model} Model The model to delete from
+    * @param {object} filter the `where` clause
     * @param {object} opts
-    * @param {mongoose.ClientSession|undefined} opts.session 
+    * @param {mongoose.ClientSession?} opts.session Provide this if the deletion needs to be part of an already started transaction
     */
    async delete(Model, filter, opts={}) {
 
@@ -138,7 +138,7 @@ class Cascade {
    }
 
    /**
-    * Initializes the object
+    * Initializes the instance. Throws an error if something is wrong with your schemas
     */
    init() {
       this._refLists = buildReferenceMap(this._conn);
@@ -147,7 +147,7 @@ class Cascade {
 
    /**
     * 
-    * @param {mongoose.Connection} conn The mongoose connection to use. Defaults to {mongoose.connection}
+    * @param {mongoose.Connection} conn The mongoose connection to use. Defaults to `mongoose.connection`
     */
    constructor(conn=mongoose.connection) {
       this._conn = conn;
@@ -156,8 +156,7 @@ class Cascade {
 }
 
 // TODO: ADD github actions for publishing to NPM
-// TODO: Documentation
-// TODO: Add comments
+// TODO: Consider monkey patching the commitTransaction on the catch clause
 // TODO: Edge case: what happens if an attribute is an array of an array, and its in this form { attribute: [ { type: [ { type: Type } ]} ]}
 // TODO: Consider schemas used by defining type as Array | DocumentArray | Subdocument
 
