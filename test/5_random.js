@@ -2,6 +2,13 @@ const casual = require("casual");
 const { makeTests } = require("./utils");
 const { default: mongoose } = require("mongoose");
 
+
+function createAttributeName() {
+   const name = casual.word.toLowerCase();
+   return ['type', 'id'].includes(name) ? createAttributeName() : name;
+}
+
+
 suite('Random schemas', function() {
 
    const TYPES = {
@@ -9,14 +16,19 @@ suite('Random schemas', function() {
       NOT_ARRAY: 'not-array',
    }
 
-   const levels = casual.integer(5, 7);
+   const levels = casual.integer(5, 10);
    const pattern = [];
 
    for (let i = 0; i < levels; i++) {
-      pattern.push({
-         type: casual.random_element(Object.values(TYPES)),
-         name: casual.word.toLowerCase(),
-      });
+      const type = casual.random_element(Object.values(TYPES));
+      let giveName = true;
+
+      if (type === TYPES.ARRAY && pattern[i - 1]?.type === TYPES.ARRAY) {
+         giveName = casual.coin_flip;
+      }
+
+      const name = giveName ? createAttributeName() : undefined;
+      pattern.push({ type, name });
    }
 
    const reversedPattern = [ ...pattern ].reverse();
@@ -37,19 +49,20 @@ suite('Random schemas', function() {
          }
 
          // find the last array in doc
-         let arr = doc;
+         let value = doc;
 
          for (let i = 0; i < lastIndexOfArrayAttribute; i++) {
             const { type, name } = pattern[i];
-            arr = arr[name];
+            if (name)
+               value = value[name];
             if (type === TYPES.ARRAY)
-               arr = arr[0];
+               value = value[0];
          }
 
-         arr = arr[pattern[lastIndexOfArrayAttribute].name];
+         value = value[pattern[lastIndexOfArrayAttribute].name];
 
          // check if empty
-         return arr.length === 0;
+         return value.length === 0;
          
       }
    }
@@ -79,7 +92,7 @@ suite('Random schemas', function() {
                }]
             }
 
-            schema = { [name]: value }
+            schema = name ? { [name]: value } : value;
          } else {
             schema = {
                [name]: {
@@ -106,7 +119,7 @@ suite('Random schemas', function() {
                   value = [ schema ]
                }
 
-               schema = { [name]: value }
+               schema = name ? { [name]: value } : value;
 
             } else {
                schema = { [name]: schema, }
@@ -123,7 +136,8 @@ suite('Random schemas', function() {
          const [ { name, type }] = reversedPattern;
 
          if (type === TYPES.ARRAY) {
-            payload = { [name]: [ _id ] }
+            const value = [ _id ];
+            payload = name ? { [name]: value } : value;
          } else {
             payload = { [name]: _id }
          }
@@ -133,9 +147,8 @@ suite('Random schemas', function() {
             const { type, name } = reversedPattern[i];
 
             if (type === TYPES.ARRAY) {
-               payload = {
-                  [name]: [ payload ]
-               }
+               const value = [ payload ];
+               payload =  name ? { [name]: value } : value;
             } else {
                payload = { [name]: payload }
             }
@@ -150,7 +163,8 @@ suite('Random schemas', function() {
          // iterate until reaching the leaf atrribute
          for (let i in pattern) {
             const { type, name } = pattern[i];
-            shouldBeNull = shouldBeNull[name];
+            if (name)
+               shouldBeNull = shouldBeNull[name];
             if (type === TYPES.ARRAY)
                shouldBeNull = shouldBeNull[0];
          }

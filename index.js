@@ -101,12 +101,7 @@ class Cascade {
                            // remove all references to the deleted docs from their respective arrays
                            const { createPullOp } = ref;
                            const update = createPullOp(deletedIds)
-                           const toBeRemoved = await ReferringModel.updateMany(filter, update, { session });
-                           if (!toBeRemoved.acknowledged) {
-                              console.log(JSON.stringify(update, 0, 3));
-                              console.log(JSON.stringify(ReferringModel.schema.obj, 0, 3));
-                              process.exit();
-                           }
+                           await ReferringModel.updateMany(filter, update, { session });
                            break;
                         }
                   
@@ -158,6 +153,7 @@ class Cascade {
 // TODO: ADD github actions for publishing to NPM
 // TODO: Edge case: what happens if an attribute is an array of an array, and its in this form { attribute: [ { type: [ { type: Type } ]} ]}
 // TODO: Consider schemas used by defining type as Array | DocumentArray | Subdocument
+// TODO: Edge case: attribute is named type
 
 module.exports = {
    Cascade,
