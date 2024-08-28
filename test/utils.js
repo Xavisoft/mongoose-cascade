@@ -83,7 +83,7 @@ function makeTests(opts) {
 
                // nothing should be deleted
                const iAmNotDeleted = await ReferredModel.findById(referredDoc._id);
-               assert.isNotNu;;(iAmNotDeleted);
+               assert.isNotNull(iAmNotDeleted);
 
                const referringDocsCount = await ReferringModel.countDocuments();
                assert.equal(referringDocsCount, referringDocs.length);
