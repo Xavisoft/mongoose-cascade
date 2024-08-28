@@ -83,7 +83,7 @@ suite("Session", function() {
       
    });
 
-   test("Stubbornly committing after DeleteRestricted is thrown should fail", async () => {
+   test("Stubbornly committing after cascade.delete() throws an error should fail", async () => {
 
       // create models
       const referredModelName = createModelName();

@@ -89,12 +89,6 @@ class Cascade {
                            if (count > 0) {
                               const err = new DeleteRestrictedError(Model, deletedIds, ReferringModel);
                               err.code = ON_DELETE.RESTRICT;
-
-                              // this part is for your own safety
-                              session.commitTransaction = () => {
-                                 throw new Error(`I don't think it's a good idea to commit the transaction after "${err.name}" is thrown. You might wanna rethink some of your life choices 😜`)
-                              }
-
                               throw err;
                            }
 
@@ -128,8 +122,14 @@ class Cascade {
             await session.commitTransaction();
 
       } catch (err) {
-         if (isSessionLocal)
+         if (isSessionLocal) {
             await session.abortTransaction();
+         } else {
+            // this part is for your own safety
+            session.commitTransaction = () => {
+               throw new Error(`I don't think it's a good idea to commit the transaction after "${err.name}" is thrown. You might wanna rethink some of your life choices 😜`)
+            }
+         }
          throw err;
       } finally {
          if (isSessionLocal)
@@ -156,7 +156,6 @@ class Cascade {
 }
 
 // TODO: ADD github actions for publishing to NPM
-// TODO: Consider monkey patching the commitTransaction on the catch clause
 // TODO: Edge case: what happens if an attribute is an array of an array, and its in this form { attribute: [ { type: [ { type: Type } ]} ]}
 // TODO: Consider schemas used by defining type as Array | DocumentArray | Subdocument
 
