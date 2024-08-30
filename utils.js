@@ -124,6 +124,8 @@ function processSchemaForRefs(schema, refLists, Model, path=[]) {
       
       const refModelName = obj.ref;
       if (!refModelName) {
+         if (typeof obj.type === 'function')
+            return;
          // recursively deal with the schema
          obj = obj.type || obj;
          return processSchemaForRefs(obj, refLists, Model, newPath);

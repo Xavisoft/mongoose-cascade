@@ -158,6 +158,7 @@ class Cascade {
 // TODO: Test multiple references on one model
 // TODO: Don't we need arrayFilters on PULL?
 // TODO: Figure out what's causing errors on random
+// TODO: Add tests where there are other non-cascade attributes, flat and nested
 
 module.exports = {
    Cascade,
