@@ -15,7 +15,8 @@ const { ON_DELETE } = require('./constants');
  *    attribute: string,
  *    onDelete: string,
  *    createSetNullOp: createOpCallback | undefined,
- *    createPullOp: createOpCallback | undefined
+ *    createPullOp: createOpCallback | undefined,
+ *    createFilter: createOpCallback | undefined
  * }>}
  * }
  */
@@ -56,37 +57,76 @@ function processSchemaForRefs(schema, refLists, Model, path=[]) {
       // check if this attribute is a reference
       let obj = schema[attribute];
 
-      let isArray = false;
-      if (Array.isArray(obj)) {
-         // indicate that it's an array and focus on the schema part
-         obj = obj[0];
-         isArray = true;
-      }
-
       if (typeof obj !== 'object') 
          return; // can't have ref
 
-      if (Array.isArray(obj.type))
-         isArray = true; // indicate that it's an array
+      let newPath = [ ...path ];
 
-      const newPath = [ ...path, { attribute, isArray } ];
+      const dealWithMultiDimensionalArrays = obj => {
+         // TODO: revise this function
+         while (Array.isArray(obj)) {
+            newPath.push({ isArray: true });
+            obj = obj[0];
+
+            if (Array.isArray(obj.type)) {
+               if (typeof obj.type[0] !== 'function')
+                  obj = obj.type[0];
+               newPath.push({ isArray: true })
+            }
+         }
+
+         if (Array.isArray(obj.type)) {
+            obj = obj.type[0];
+            newPath.push({ isArray: true })
+            obj = dealWithMultiDimensionalArrays(obj);
+         }
+
+         return obj;
+      }
+
+      if (Array.isArray(obj)) {
+         // embedded array
+         obj = obj[0];
+         newPath.push({ attribute, isArray: true });
+
+         // deal with multidimensional arrays
+         obj = dealWithMultiDimensionalArrays(obj);
+         
+      } else if (Array.isArray(obj.type)) {
+         // embedded array
+         newPath.push({ attribute, isArray: true });
+
+         if (typeof obj.type[0] === 'function') {
+            // no rabbit hole and ref could be on {obj}
+         } else {
+            // definitely a rabbit hole
+            obj = obj.type[0];
+
+            // deal with multidimensional arrays
+            obj = dealWithMultiDimensionalArrays(obj);
+         }
+
+      } else if (typeof obj.type === 'function') {
+         // flat
+         newPath.push({ attribute, isArray: false });
+      } else {
+         // embedded object
+         newPath.push({ attribute, isArray: false });
+
+         if (typeof obj.type === 'object') {
+            return processSchemaForRefs(obj.type, refLists, Model, newPath);
+         }
+      }
+
+
+      if (typeof obj !== 'object') 
+         return; // can't have ref
       
       const refModelName = obj.ref;
       if (!refModelName) {
          // recursively deal with the schema
-         let schema;
-
-         // TODO: explain here
-         if (obj.type) {
-            if (Array.isArray(obj.type))
-               schema = obj.type[0];
-            else
-               schema = obj.type;
-         } else {
-            schema = obj;
-         }
-         
-         return processSchemaForRefs(schema, refLists, Model, newPath);
+         obj = obj.type || obj;
+         return processSchemaForRefs(obj, refLists, Model, newPath);
       }
 
       const { onDelete } = obj;
@@ -114,7 +154,16 @@ function processSchemaForRefs(schema, refLists, Model, path=[]) {
             const pathUpToLastArray = newPath.slice(0, lastIndexOfArrayAttribute);
             const pathAfterLastArray = newPath.slice(lastIndexOfArrayAttribute + 1);
             const lastArrayAttribute = newPath[lastIndexOfArrayAttribute].attribute;
-            const strPathUpToLastArray = pathUpToLastArray.length ? generateAttributePath(pathUpToLastArray) + `.${lastArrayAttribute}` : lastArrayAttribute;
+            let strPathUpToLastArray;
+
+            if (pathUpToLastArray.length) {
+               strPathUpToLastArray = generateAttributePath(pathUpToLastArray);
+               if (lastArrayAttribute)
+                  strPathUpToLastArray += `.${lastArrayAttribute}`;
+            } else {
+               strPathUpToLastArray = lastArrayAttribute;
+            }
+            
             const strPathAfterLastArray = generateAttributePath(pathAfterLastArray);
 
             const $in = _ids
@@ -178,6 +227,51 @@ function processSchemaForRefs(schema, refLists, Model, path=[]) {
          }
       }
 
+      /// function to create the where clause to target docs refereing to the deleted docs
+      let createFilter;
+
+      if (newPath.some(item => item.isArray)) {
+         createFilter = _ids => {
+
+            let filter;
+            const reversedPath = [ ...newPath ].reverse();
+
+            const { attribute, isArray } = reversedPath[0];
+            const value = { $in: _ids };
+
+            if (isArray) {
+               if (attribute) {
+                  filter = { [attribute]: { $elemMatch: value } }
+               } else {
+                  filter = { $elemMatch: value }
+               }
+            } else {
+               filter = { [attribute]: value }
+            }
+
+            for (let i = 1; i < reversedPath.length; i++) {
+               const { attribute, isArray } = reversedPath[i];
+
+               if (isArray) {
+                  if (attribute) {
+                     filter = {
+                        [attribute]: { $elemMatch: filter }
+                     }
+                  } else {
+                     filter = { $elemMatch: filter }
+                  }
+               } else {
+                  const key = Object.keys(filter)[0];
+                  const value = filter[key];
+                  filter = { [`${attribute}.${key}`]: value }
+               }
+            }
+
+            return filter;
+         }
+
+      }
+
       /// add to lists
       let refList = refLists[refModelName];
 
@@ -194,6 +288,7 @@ function processSchemaForRefs(schema, refLists, Model, path=[]) {
          onDelete,
          createSetNullOp,
          createPullOp,
+         createFilter,
       });
 
    })
@@ -204,9 +299,11 @@ function generateAttributePath(path) {
       .map(({ attribute, isArray }) => {
          if (!isArray)
             return attribute;
+         if (!attribute)
+            return `$[]`;
          return `${attribute}.$[]`;
       })
-   .join('.');
+      .join('.');
 }
 
 

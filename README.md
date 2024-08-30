@@ -65,7 +65,7 @@ console.log(updatedComment.user); // output: null
 To configure **on delete behavior** for your references, provide `onDelete` value with your schema references as shown in the above example, with one of the values below:
 - `ON_DELETE.SET_NULL`: Set the references to the document(s) being deleted to `null`
 - `ON_DELETE.CASCADE`: Delete all the document referencing the document(s) being deleted
-- `ON_DELETE.RESTRICT`: Do not delete if there are still documents referencing the document(s). Instead raise a `DeleteRestricted Error`
+- `ON_DELETE.RESTRICT`: Do not delete if there are still documents referencing the document(s). Instead raise a `DeleteRestrictedError`
 - `ON_DELETE.PULL`: Apply the `$pull` operator on the array to remove items referencing document(s) being deleted
 
 #### Cascade

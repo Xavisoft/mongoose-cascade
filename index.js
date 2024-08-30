@@ -58,13 +58,15 @@ class Cascade {
 
                for (const ref of refList) {
 
-                  const { onDelete, model:ReferringModel, attribute } = ref;
+                  const { onDelete, model:ReferringModel, attribute, createFilter } = ref;
 
-                  const filter = {
-                     [attribute]: {
-                        $in: deletedIds
-                     }
-                  }; // the filter targets every doc that reference the deleted docs
+                  const filter = typeof createFilter == 'function' ?
+                     createFilter(deletedIds):
+                        {
+                           [attribute]: {
+                              $in: deletedIds
+                           }
+                        }; // the filter targets every doc that reference the deleted docs
                   
                   switch (onDelete) {
                      case ON_DELETE.CASCADE:
@@ -151,9 +153,11 @@ class Cascade {
 }
 
 // TODO: ADD github actions for publishing to NPM
-// TODO: Edge case: what happens if an attribute is an array of an array, and its in this form { attribute: [ { type: [ { type: Type } ]} ]}
 // TODO: Consider schemas used by defining type as Array | DocumentArray | Subdocument
 // TODO: Edge case: attribute is named type
+// TODO: Test multiple references on one model
+// TODO: Don't we need arrayFilters on PULL?
+// TODO: Figure out what's causing errors on random
 
 module.exports = {
    Cascade,
