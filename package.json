@@ -1,6 +1,6 @@
 {
   "name": "@xavisoft/mongoose-cascade",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": false,
   "description": "An npm package for implementing ON DELETE CASCADE, SET NULL, and RESTRICT behavior for Mongoose",
   "main": "index.js",
