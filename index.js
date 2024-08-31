@@ -152,13 +152,14 @@ class Cascade {
 
 }
 
-// TODO: ADD github actions for publishing to NPM
 // TODO: Consider schemas used by defining type as Array | DocumentArray | Subdocument
 // TODO: Edge case: attribute is named type
 // TODO: Test multiple references on one model
 // TODO: Don't we need arrayFilters on PULL?
 // TODO: Figure out what's causing errors on random
 // TODO: Add tests where there are other non-cascade attributes, flat and nested
+// TODO: Add support to see if the operation done satisfies validators (like required: true or validator function)
+// TODO: Add refPath support
 
 module.exports = {
    Cascade,
